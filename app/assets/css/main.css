@@ -4,15 +4,42 @@
 @theme static {
   --font-sans: 'Public Sans', sans-serif;
 
-  --color-green-50: #EFFDF5;
-  --color-green-100: #D9FBE8;
-  --color-green-200: #B3F5D1;
-  --color-green-300: #75EDAE;
-  --color-green-400: #00DC82;
-  --color-green-500: #00C16A;
-  --color-green-600: #00A155;
-  --color-green-700: #007F45;
-  --color-green-800: #016538;
-  --color-green-900: #0A5331;
-  --color-green-950: #052E16;
+  /* Paleta PRIMARIA (azul, estilo Fintual) — mapeada a `primary` en app.config.ts */
+  --color-blue-50: #EBF0FE;
+  --color-blue-100: #D6E0FC;
+  --color-blue-200: #AEC2F8;
+  --color-blue-300: #7E9BF1;
+  --color-blue-400: #4B6FE8;
+  --color-blue-500: #1E44D6;
+  --color-blue-600: #1637B5;
+  --color-blue-700: #142E93;
+  --color-blue-800: #152975;
+  --color-blue-900: #16255F;
+  --color-blue-950: #0E1738;
+
+  /* Paleta SECUNDARIA (celeste muy tenue) — mapeada a `secondary` en app.config.ts */
+  --color-sky-50: #F3FAFF;
+  --color-sky-100: #E6F4FF;
+  --color-sky-200: #CDE8FF;
+  --color-sky-300: #A6D5FF;
+  --color-sky-400: #74BCFF;
+  --color-sky-500: #4AA3FF;
+  --color-sky-600: #2F84E6;
+  --color-sky-700: #2668B8;
+  --color-sky-800: #245795;
+  --color-sky-900: #234A79;
+  --color-sky-950: #16304F;
+
+  /* Paleta de AVISO (amarillo) — mapeada a `warning` en app.config.ts */
+  --color-yellow-50: #FEFCE8;
+  --color-yellow-100: #FEF9C3;
+  --color-yellow-200: #FEF3A3;
+  --color-yellow-300: #FDE047;
+  --color-yellow-400: #FCD34D;
+  --color-yellow-500: #FACC15;
+  --color-yellow-600: #EAB308;
+  --color-yellow-700: #CA8A04;
+  --color-yellow-800: #A16207;
+  --color-yellow-900: #854D0E;
+  --color-yellow-950: #713F12;
 }

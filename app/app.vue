@@ -25,29 +25,14 @@ useSeoMeta({
 
 <template>
   <UApp>
-    <UHeader>
-      <template #left>
-        <NuxtLink to="/" class="flex items-center gap-2 font-semibold">
-          <UIcon name="i-lucide-bone" class="size-6 text-primary" />
-          <span>Fractura ML</span>
-        </NuxtLink>
-      </template>
+    <UBanner
+      color="warning"
+      icon="i-lucide-triangle-alert"
+      title="Versión de prueba — herramienta de investigación, no diagnóstica."
+    />
 
-      <template #right>
-        <UColorModeButton />
-      </template>
-    </UHeader>
-
-    <UMain>
+    <UMain class="min-h-dvh bg-secondary/5">
       <NuxtPage />
     </UMain>
-
-    <UFooter>
-      <template #left>
-        <p class="text-sm text-muted">
-          Proyecto de investigación • © {{ new Date().getFullYear() }}
-        </p>
-      </template>
-    </UFooter>
   </UApp>
 </template>
