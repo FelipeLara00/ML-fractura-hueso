@@ -105,8 +105,14 @@ function reset() {
                       alt="Vista previa de la radiografía"
                       class="max-h-48 w-full object-contain"
                     >
-                    <div v-else class="flex flex-col items-center gap-1 text-muted">
-                      <UIcon name="i-lucide-image" class="size-6 opacity-40" />
+                    <div
+                      v-else
+                      class="flex flex-col items-center gap-1 text-muted"
+                    >
+                      <UIcon
+                        name="i-lucide-image"
+                        class="size-6 opacity-40"
+                      />
                       <span class="text-sm">Vista previa</span>
                     </div>
                   </div>
@@ -127,7 +133,10 @@ function reset() {
             </template>
 
             <template #result>
-              <div v-if="result" class="space-y-6 text-center">
+              <div
+                v-if="result"
+                class="space-y-6 text-center"
+              >
                 <div class="space-y-2">
                   <UIcon
                     :name="isPathologic ? 'i-lucide-alert-circle' : 'i-lucide-check-circle'"
