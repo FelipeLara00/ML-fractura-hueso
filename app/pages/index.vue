@@ -1,12 +1,15 @@
 <script setup lang="ts">
-interface PredictResponse {
-  probabilidad_patologica: number
-  clase: string
-}
+import { useFractureService } from '~/services/fracture.service'
 
-const config = useRuntimeConfig()
 const toast = useToast()
+const fracture = useFractureService()
 
+const items = [
+  { slot: 'upload', title: 'Radiografía', description: 'Sube la imagen', icon: 'i-lucide-image-up' },
+  { slot: 'result', title: 'Resultado', description: 'Estimación del modelo', icon: 'i-lucide-activity' }
+]
+
+const step = ref(0)
 const file = ref<File | null>(null)
 const previewUrl = ref<string | null>(null)
 const loading = ref(false)
@@ -15,7 +18,6 @@ const result = ref<{ prob: number, label: string } | null>(null)
 watch(file, (f) => {
   if (previewUrl.value) URL.revokeObjectURL(previewUrl.value)
   previewUrl.value = f ? URL.createObjectURL(f) : null
-  result.value = null
 })
 
 onBeforeUnmount(() => {
@@ -25,27 +27,22 @@ onBeforeUnmount(() => {
 const pct = computed(() => (result.value ? Math.round(result.value.prob * 100) : 0))
 const isPathologic = computed(() => result.value?.label?.toLowerCase().includes('pat') ?? false)
 
+// Confianza: qué tan lejos está la probabilidad del 50/50 (0 = indeciso, 1 = totalmente seguro)
+const confidence = computed(() => (result.value ? Math.abs(result.value.prob - 0.5) * 2 : 0))
+const confidenceColor = computed(() => {
+  if (confidence.value >= 0.5) return 'success' // seguro -> verde
+  if (confidence.value >= 0.2) return 'warning' // dudoso -> ámbar
+  return 'error' // casi 50/50 -> rojo
+})
+
 async function analyze() {
   if (!file.value) return
-
-  const endpoint = config.public.hfEndpoint as string
-  if (!endpoint) {
-    toast.add({
-      title: 'Falta configurar el servicio',
-      description: 'Define NUXT_PUBLIC_HF_ENDPOINT con la URL de tu Space de Hugging Face.',
-      color: 'warning',
-      icon: 'i-lucide-triangle-alert'
-    })
-    return
-  }
 
   loading.value = true
   result.value = null
   try {
-    const form = new FormData()
-    form.append('file', file.value)
-    const res = await $fetch<PredictResponse>(endpoint, { method: 'POST', body: form })
-    result.value = { prob: res.probabilidad_patologica, label: res.clase }
+    result.value = await fracture.predict(file.value)
+    step.value = 1
   } catch (e) {
     toast.add({
       title: 'No se pudo analizar la imagen',
@@ -57,114 +54,134 @@ async function analyze() {
     loading.value = false
   }
 }
+
+function reset() {
+  file.value = null
+  result.value = null
+  step.value = 0
+}
 </script>
 
 <template>
-  <UContainer class="py-10 sm:py-14">
-    <div class="mx-auto max-w-3xl space-y-8">
-      <div class="text-center space-y-3">
-        <h1 class="text-3xl sm:text-4xl font-bold text-highlighted">
-          Detector de fractura patológica
-        </h1>
-        <p class="text-muted text-lg">
-          Sube una radiografía de un hueso largo y el modelo estimará si la fractura
-          es <span class="font-medium text-highlighted">patológica (tumoral)</span> o
-          <span class="font-medium text-highlighted">traumática</span>.
-        </p>
-      </div>
+  <div>
+    <UContainer class="py-12 sm:py-16">
+      <div class="mx-auto w-full max-w-2xl">
+        <div class="mb-8 space-y-3 text-center">
+          <h1 class="text-3xl font-semibold tracking-tight text-highlighted sm:text-4xl">
+            Detector de fractura patológica
+          </h1>
+          <p class="text-muted">
+            Sube una radiografía de un hueso largo y el modelo estimará si la fractura
+            es patológica (tumoral) o traumática.
+          </p>
+        </div>
 
-      <UAlert
-        icon="i-lucide-triangle-alert"
-        color="warning"
-        variant="subtle"
-        title="Herramienta de investigación"
-        description="Prueba de concepto entrenada con 80 imágenes. No es una herramienta diagnóstica ni sustituye el criterio de un profesional médico."
-      />
-
-      <div class="grid gap-6 md:grid-cols-2">
-        <UCard>
-          <template #header>
-            <div class="flex items-center gap-2 font-semibold">
-              <UIcon name="i-lucide-upload" class="size-5 text-primary" />
-              <span>1. Sube la radiografía</span>
-            </div>
-          </template>
-
-          <div class="space-y-4">
-            <UFileUpload
-              v-model="file"
-              accept="image/*"
-              icon="i-lucide-image"
-              label="Arrastra una imagen o haz clic para seleccionar"
-              description="PNG, JPG o TIFF"
-              class="min-h-44 w-full"
-            />
-
-            <div v-if="previewUrl" class="overflow-hidden rounded-lg border border-default">
-              <img :src="previewUrl" alt="Vista previa de la radiografía" class="max-h-64 w-full object-contain bg-elevated">
-            </div>
-
-            <UButton
-              block
-              size="lg"
-              icon="i-lucide-scan-search"
-              :loading="loading"
-              :disabled="!file"
-              @click="analyze"
-            >
-              Analizar imagen
-            </UButton>
-          </div>
-        </UCard>
-
-        <UCard>
-          <template #header>
-            <div class="flex items-center gap-2 font-semibold">
-              <UIcon name="i-lucide-activity" class="size-5 text-primary" />
-              <span>2. Resultado</span>
-            </div>
-          </template>
-
-          <div
-            v-if="!result && !loading"
-            class="flex h-full min-h-52 flex-col items-center justify-center text-center text-muted"
+        <div class="rounded-lg bg-default p-6 ring-1 ring-default sm:p-8">
+          <UStepper
+            v-model="step"
+            :items="items"
+            color="primary"
+            size="sm"
+            class="mb-8"
+            :ui="{ trigger: 'pointer-events-none' }"
           >
-            <UIcon name="i-lucide-scan-line" class="mb-2 size-10 opacity-40" />
-            <p>El resultado aparecerá aquí después de analizar una imagen.</p>
-          </div>
+            <template #upload>
+              <div class="space-y-5">
+                <div class="grid gap-4 sm:grid-cols-2">
+                  <UFileUpload
+                    v-model="file"
+                    accept="image/*"
+                    icon="i-lucide-image"
+                    label="Arrastra una radiografía o haz clic"
+                    description="PNG, JPG o TIFF"
+                    :preview="false"
+                    class="min-h-48 rounded-lg"
+                  />
 
-          <div v-else-if="loading" class="flex h-full min-h-52 flex-col items-center justify-center gap-3 text-muted">
-            <UIcon name="i-lucide-loader-circle" class="size-8 animate-spin text-primary" />
-            <p>Analizando…</p>
-          </div>
+                  <div class="flex min-h-48 items-center justify-center overflow-hidden rounded-lg bg-secondary/5 ring-1 ring-default">
+                    <img
+                      v-if="previewUrl"
+                      :src="previewUrl"
+                      alt="Vista previa de la radiografía"
+                      class="max-h-48 w-full object-contain"
+                    >
+                    <div
+                      v-else
+                      class="flex flex-col items-center gap-1 text-muted"
+                    >
+                      <UIcon
+                        name="i-lucide-image"
+                        class="size-6 opacity-40"
+                      />
+                      <span class="text-sm">Vista previa</span>
+                    </div>
+                  </div>
+                </div>
 
-          <div v-else-if="result" class="space-y-5">
-            <div class="flex items-center justify-between">
-              <span class="text-muted">Clasificación</span>
-              <UBadge
-                :color="isPathologic ? 'error' : 'success'"
-                variant="subtle"
-                size="lg"
-                :icon="isPathologic ? 'i-lucide-alert-circle' : 'i-lucide-check-circle'"
-              >
-                {{ isPathologic ? 'Patológica (tumoral)' : 'Traumática' }}
-              </UBadge>
-            </div>
-
-            <div class="space-y-2">
-              <div class="flex items-baseline justify-between">
-                <span class="text-muted text-sm">Probabilidad de fractura patológica</span>
-                <span class="text-2xl font-bold text-highlighted">{{ pct }}%</span>
+                <UButton
+                  block
+                  size="xl"
+                  class="rounded-lg"
+                  icon="i-lucide-scan-search"
+                  :loading="loading"
+                  :disabled="!file"
+                  @click="analyze"
+                >
+                  Analizar imagen
+                </UButton>
               </div>
-              <UProgress :model-value="pct" :color="isPathologic ? 'error' : 'success'" />
-            </div>
+            </template>
 
-            <p class="text-xs text-muted">
-              Estimación del modelo. Interpretar siempre junto con el criterio clínico.
-            </p>
-          </div>
-        </UCard>
+            <template #result>
+              <div
+                v-if="result"
+                class="space-y-6 text-center"
+              >
+                <div class="space-y-2">
+                  <UIcon
+                    :name="isPathologic ? 'i-lucide-alert-circle' : 'i-lucide-check-circle'"
+                    class="size-9 text-dimmed"
+                  />
+                  <p class="text-4xl font-semibold tracking-tight text-highlighted sm:text-5xl">
+                    {{ isPathologic ? 'Patológica (tumoral)' : 'Traumática' }}
+                  </p>
+                  <p class="text-muted">
+                    Probabilidad de fractura patológica:
+                    <span class="font-medium text-highlighted">{{ pct }}%</span>
+                  </p>
+                </div>
+
+                <UProgress
+                  :model-value="pct"
+                  :color="confidenceColor"
+                  size="lg"
+                />
+
+                <UAlert
+                  color="warning"
+                  variant="subtle"
+                  icon="i-lucide-info"
+                  title="Esto no es un diagnóstico definitivo"
+                  description="Es una estimación de una herramienta de investigación. Consulta siempre el resultado con un profesional médico."
+                  class="text-left"
+                />
+
+                <UButton
+                  block
+                  size="lg"
+                  color="primary"
+                  variant="soft"
+                  class="rounded-lg"
+                  icon="i-lucide-rotate-ccw"
+                  @click="reset"
+                >
+                  Analizar otra imagen
+                </UButton>
+              </div>
+            </template>
+          </UStepper>
+        </div>
       </div>
-    </div>
-  </UContainer>
+    </UContainer>
+  </div>
 </template>
