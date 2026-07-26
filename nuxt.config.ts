@@ -11,11 +11,17 @@ export default defineNuxtConfig({
 
   css: ['~/assets/css/main.css'],
 
+  // Forzar siempre modo claro (sin dark mode)
+  colorMode: {
+    preference: 'light',
+    fallback: 'light'
+  },
+
   runtimeConfig: {
     public: {
-      // URL del endpoint de predicción (tu Space de Hugging Face).
-      // Se define con la variable de entorno NUXT_PUBLIC_HF_ENDPOINT.
-      hfEndpoint: ''
+      // URL base del backend (Cloud Run). Los servicios agregan la ruta (ej. /predict).
+      // Se define con la variable de entorno NUXT_PUBLIC_API_BASE.
+      apiBase: ''
     }
   },
 
